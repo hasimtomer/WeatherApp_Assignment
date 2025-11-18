@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather App</title>
+  <style>
+    /* Basic Reset */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      text-align: center;
+      background: linear-gradient(to right, #36d1dc, #5b86e5); /* Smooth gradient */
+      position: relative;
+    }
+
+    /* Cloud Animation Background */
+    .clouds {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('https://www.transparenttextures.com/patterns/cloudy-day.png') repeat-x;
+      opacity: 0.2; /* Softer opacity for the clouds */
+      animation: moveClouds 120s linear infinite;
+      z-index: -1;
+    }
+
+    @keyframes moveClouds {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-100%); }
+    }
+
+    /* Weather Container */
+    .weather-container {
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 20px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+      width: 360px;
+      max-width: 90%;
+      transition: transform 0.3s ease-in-out;
+      position: relative;
+      z-index: 1;
+      animation: fadeIn 0.8s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      0% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+
+    .weather-container:hover {
+      transform: scale(1.05);
+    }
+
+    /* Weather App Title */
+    h1 {
+      color: #ffffff;
+      margin-bottom: 15px;
+      font-size: 2.2rem; /* Slightly larger title */
+      font-weight: bold;
+      text-shadow: 3px 3px 10px rgba(0, 0, 0, 0.4); /* Soft shadow for better contrast */
+    }
+
+    /* Input field and button styling */
+    .search-bar {
+      width: 100%;
+      padding: 12px;
+      font-size: 1.1rem;
+      border-radius: 10px;
+      border: 2px solid #00bcd4;
+      margin-bottom: 20px;
+      outline: none;
+      transition: border-color 0.3s ease-in-out;
+    }
+
+    .search-bar:focus {
+      border-color: #5b86e5;
+    }
+
+    .button {
+      padding: 12px 18px;
+      background-color: #ff6f61;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      width: 100%;
+      transition: background-color 0.3s ease-in-out, transform 0.2s ease;
+    }
+
+    .button:hover {
+      background-color: #ff4f3f;
+      transform: translateY(-3px);
+    }
+
+    /* Weather Info Section */
+    #weatherInfo {
+      margin-top: 20px;
+      color: #333;
+    }
+
+    #cityName {
+      font-size: 1.4rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    #description {
+      font-size: 1rem;
+      margin: 10px 0;
+      color: #555;
+    }
+
+    #temperature {
+      font-size: 1.4rem;
+      color: #ff6f61;
+      margin: 10px 0;
+    }
+
+    #weatherIcon {
+      width: 100px;
+      height: 100px;
+      margin-top: 10px;
+    }
+
+    /* Error Message */
+    .error {
+      color: #ff0000;
+      font-weight: bold;
+      margin-top: 20px;
+      font-size: 1.1rem;
+      display: none;
+      animation: errorShake 0.5s ease-in-out;
+    }
+
+    @keyframes errorShake {
+      0% { transform: translateX(-10px); }
+      25% { transform: translateX(10px); }
+      50% { transform: translateX(-10px); }
+      75% { transform: translateX(10px); }
+      100% { transform: translateX(0); }
+    }
+
+    /* Responsive design for smaller screens */
+    @media (max-width: 480px) {
+      .weather-container {
+        width: 90%;
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 1.8rem; /* Adjusted title size for small screens */
+      }
+    }
+
+  </style>
+</head>
+<body>
+  <!-- Cloud Background -->
+  <div class="clouds"></div>
+
+  <!-- Weather App -->
+  <div class="weather-container">
+    <h1>Weather App</h1>
+    <input type="text" id="cityInput" class="search-bar" placeholder="Enter city name" />
+    <button class="button" id="searchButton">Get Weather</button>
+
+    <div id="weatherInfo" style="display: none;">
+      <h2 id="cityName"></h2>
+      <p id="description"></p>
+      <p id="temperature"></p>
+      <img id="weatherIcon" src="" alt="Weather Icon" />
+    </div>
+
+    <p id="error" class="error" style="display: none;"></p>
+  </div>
+
+  <script type="module">
+    const searchButton = document.getElementById("searchButton");
+    const cityInput = document.getElementById("cityInput");
+    const weatherInfo = document.getElementById("weatherInfo");
+    const errorElement = document.getElementById("error");
+    const weatherIcon = document.getElementById("weatherIcon");
+
+    searchButton.addEventListener("click", async () => {
+      const city = cityInput.value.trim();
+      if (!city) return alert("Please enter a city name!");
+
+      weatherInfo.style.display = "none";
+      errorElement.style.display = "none";
+      weatherIcon.style.display = "none";
+
+      try {
+        const response = await fetch(`http://localhost:5000/weather?city=${city}`);
+        if (!response.ok) throw new Error("Failed to fetch weather data");
+
+        const data = await response.json();
+        
+        // Display weather data
+        document.getElementById("cityName").innerText = `${data.city}, ${data.country}`;
+        document.getElementById("description").innerText = `Weather: ${data.description}`;
+        document.getElementById("temperature").innerText = `${data.temperature}°C`;
+
+        // Show weather icon
+        weatherIcon.src = data.icon;
+        weatherIcon.style.display = "block";
+
+        weatherInfo.style.display = "block";
+      } catch (error) {
+        errorElement.style.display = "block";
+        errorElement.innerText = error.message;
+      }
+    });
+  </script>
+</body>
+</html>
